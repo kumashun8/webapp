@@ -3,7 +3,7 @@ all: app
 app: *.go go.mod go.sum
 	go build -o isucondition
 
-restart: logrotate restart-mysql restart-app restart-nginx
+restart: app logrotate restart-mysql restart-app restart-nginx
 
 restart-app:
 	rm -f /tmp/webapp.sock

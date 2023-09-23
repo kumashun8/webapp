@@ -1,0 +1,1 @@
+alter table isu_condition add index uuid_timestamp_desc(jia_isu_uuid,timestamp DESC);

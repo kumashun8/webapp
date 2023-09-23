@@ -1069,8 +1069,8 @@ func getTrend(c echo.Context) error {
 	res := []TrendResponse{}
 
 	icList := []IsuCondition{}
-	query := "SELECT `i`.`character` AS caracter, `ic`.`id` AS id, " +
-		"MAX(`ic`.`timestamp`) AS timestamp, `ic`.`condition` AS condition" +
+	query := "SELECT `i`.`character` AS `character`, `i`.`id` AS `id`, " +
+		"MAX(`ic`.`timestamp`) AS `timestamp`, `ic`.`condition` AS `condition` " +
 		"FROM `isu_condition` as `ic` " +
 		"JOIN `isu` as `i` ON `ic`.`jia_isu_uuid` = `i`.`jia_isu_uuid` " +
 		"GROUP BY `i`.`character`"
@@ -1093,7 +1093,7 @@ func getTrend(c echo.Context) error {
 		}
 		trendCondition := TrendCondition{
 			ID:        ic.ID,
-			Timestamp: isuLastCondition.Timestamp.Unix(),
+			Timestamp: ic.Timestamp.Unix(),
 		}
 		switch conditionLevel {
 		case "info":
@@ -1115,7 +1115,7 @@ func getTrend(c echo.Context) error {
 		})
 		res = append(res,
 			TrendResponse{
-				Character: character.Character,
+				Character: ic.Caracter,
 				Info:      characterInfoIsuConditions,
 				Warning:   characterWarningIsuConditions,
 				Critical:  characterCriticalIsuConditions,

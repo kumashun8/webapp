@@ -88,6 +88,7 @@ type IsuCondition struct {
 	Condition  string    `db:"condition"`
 	Message    string    `db:"message"`
 	CreatedAt  time.Time `db:"created_at"`
+	IsuID      int       `db:"isu_id"`
 }
 
 type MySQLConnectionEnv struct {
@@ -1074,41 +1075,28 @@ func getTrend(c echo.Context) error {
 	res := []TrendResponse{}
 
 	for _, character := range characterList {
-		isuList := []Isu{}
-		err = db.Select(&isuList,
-			"SELECT * FROM `isu` WHERE `character` = ?",
-			character.Character,
-		)
+		icList := []IsuCondition{}
+		query := "SELECT `i`.`id` AS `isu_id`,`ic`.`timestamp` AS `timestamp`,`ic`.`condition` AS `condition` " +
+			"FROM `isu` AS `i` JOIN `isu_condition` AS `ic` ON `ic`.`jia_isu_uuid` = `i`.`jia_isu_uuid` " +
+			"WHERE `i`.`character`=? AND (`ic`.`jia_isu_uuid`,`ic`.`timestamp`) IN (" +
+			"SELECT `jia_isu_uuid`,MAX(`timestamp`) FROM `isu_condition` GROUP BY `jia_isu_uuid`);"
+		err = db.Select(&icList, query, character.Character)
 		if err != nil {
 			c.Logger().Errorf("db error: %v", err)
 			return c.NoContent(http.StatusInternalServerError)
 		}
-
 		characterInfoIsuConditions := []*TrendCondition{}
 		characterWarningIsuConditions := []*TrendCondition{}
 		characterCriticalIsuConditions := []*TrendCondition{}
-		for _, isu := range isuList {
-			condition := &IsuCondition{}
-			err = db.Get(condition,
-				"SELECT * FROM `isu_condition` WHERE `jia_isu_uuid` = ? ORDER BY timestamp DESC LIMIT 1",
-				isu.JIAIsuUUID,
-			)
-			if err != nil {
-				c.Logger().Errorf("db error: %v", err)
-				return c.NoContent(http.StatusInternalServerError)
-			}
-			if condition == nil {
-				continue
-			}
-
-			conditionLevel, err := calculateConditionLevel(condition.Condition)
+		for _, ic := range icList {
+			conditionLevel, err := calculateConditionLevel(ic.Condition)
 			if err != nil {
 				c.Logger().Error(err)
 				return c.NoContent(http.StatusInternalServerError)
 			}
 			trendCondition := TrendCondition{
-				ID:        isu.ID,
-				Timestamp: condition.Timestamp.Unix(),
+				ID:        ic.IsuID,
+				Timestamp: ic.Timestamp.Unix(),
 			}
 			switch conditionLevel {
 			case "info":
